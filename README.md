@@ -23,8 +23,10 @@ Building on the raspberry
 --------
 Make sure, you set your Raspbian kernel to 32bit in config.txt, as getting the 64bit build on the Raspberry is currently not supported
 
-```[pi4]
-arm_64bit=0```
+```
+[pi4]
+arm_64bit=0
+```
 
 Install the raspberry linux headers:
 ```apt-get install raspberry-linux-headers```
