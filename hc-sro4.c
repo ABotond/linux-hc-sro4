@@ -49,8 +49,8 @@ struct hc_sro4 {
 	int gpio_echo;
 	struct gpio_desc *trig_desc;
 	struct gpio_desc *echo_desc;
-	struct timeval time_triggered;
-	struct timeval time_echoed;
+	ktime_t time_triggered;
+	ktime_t time_echoed;
 	int echo_received;
 	int device_triggered;
 	struct mutex measurement_mutex;
@@ -110,10 +110,9 @@ static irqreturn_t echo_received_irq(int irq, void *data)
 {
 	struct hc_sro4 *device = (struct hc_sro4 *) data;
 	int val;
-	struct timeval irq_tv;
+	ktime_t irq_tv;
 
-	do_gettimeofday(&irq_tv);
-
+	irq_tv = ktime_get();
 	if (!device->device_triggered)
 		return IRQ_HANDLED;
 	if (device->echo_received)
@@ -185,9 +184,7 @@ static int do_measurement(struct hc_sro4 *device,
 	else if (timeout < 0)
 		ret = timeout;
 	else {
-		*usecs_elapsed =
-	(device->time_echoed.tv_sec - device->time_triggered.tv_sec) * 1000000 +
-	(device->time_echoed.tv_usec - device->time_triggered.tv_usec);
+		*usecs_elapsed = ktime_to_us(ktime_sub(device->time_echoed, device->time_triggered));
 		ret = 0;
 	}
 /* TODO: unlock_as_irq */

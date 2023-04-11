@@ -1,13 +1,13 @@
 obj-m += hc-sro4.o
 
 ARCH=arm
-CROSS_COMPILE=$(HOME)/raspberry/cross-dev/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-
-# KERNEL_DIR=/lib/modules/3.18.0-trunk-rpi/build
-KERNEL_DIR=../linux
-# CC=arm-linux-gnueabihf-gcc
+KERNEL_DIR=/lib/modules/`uname -r`/build
+CROSS_COMPILE=arm-linux-gnueabihf-
+KERNEL=kernel7l
+
 
 all:
-	make -C $(KERNEL_DIR) M=$(PWD) modules ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
+		make -C $(KERNEL_DIR) M=$(PWD) modules ARCH=$(ARCH)  CROSS_COMPILE=$(CROSS_COMPILE) KERNEL=$(KERNEL)  V=1
 
 clean:
-	make -C $(KERNEL_DIR) M=$(PWD) clean ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
+		make -C $(KERNEL_DIR) M=$(PWD) clean ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE)
