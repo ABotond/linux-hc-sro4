@@ -6,10 +6,11 @@
  * This supports an (in theory) unlimited number of HC-SRO4 devices.
  * To add a device, do a (as root):
  *
- *	# echo 23 24 1000 > /sys/class/distance-sensor/configure
+ *	# echo 23 24 > /sys/class/distance-sensor/configure
  *
- * (23 is the trigger GPIO, 24 is the echo GPIO and 1000 is a timeout in
- *  milliseconds)
+ * BF Note: timeout was removed as unneeded
+ *
+ * (23 is the trigger GPIO, 24 is the echo GPIO)
  *
  * Then a directory appears with a file measure in it. To measure, do a
  *
@@ -55,14 +56,13 @@ struct hc_sro4 {
 	int device_triggered;
 	struct mutex measurement_mutex;
 	wait_queue_head_t wait_for_echo;
-	unsigned long timeout;
 	struct list_head list;
 };
 
 static LIST_HEAD(hc_sro4_devices);
 static DEFINE_MUTEX(devices_mutex);
 
-static struct hc_sro4 *create_hc_sro4(int trig, int echo, unsigned long timeout)
+static struct hc_sro4 *create_hc_sro4(int trig, int echo)
 		/* must be called with devices_mutex held */
 {
 	struct hc_sro4 *new;
@@ -99,7 +99,6 @@ static struct hc_sro4 *create_hc_sro4(int trig, int echo, unsigned long timeout)
 
 	mutex_init(&new->measurement_mutex);
 	init_waitqueue_head(&new->wait_for_echo);
-	new->timeout = timeout;
 
 	list_add_tail(&new->list, &hc_sro4_devices);
 
@@ -177,7 +176,7 @@ static int do_measurement(struct hc_sro4 *device,
 		goto out_irq;
 
 	timeout = wait_event_interruptible_timeout(device->wait_for_echo,
-				device->echo_received, device->timeout);
+				device->echo_received, HZ/20);
 
 	if (timeout == 0)
 		ret = -ETIMEDOUT;
@@ -294,7 +293,7 @@ static ssize_t configure_store(struct class *class,
 {
 	int add = buf[0] != '-';
 	const char *s = buf;
-	int trig, echo, timeout;
+	int trig, echo;
 	struct hc_sro4 *new_sensor, *rip_sensor;
 	int err;
 
@@ -302,7 +301,7 @@ static ssize_t configure_store(struct class *class,
 		s++;
 
 	if (add) {
-		if (sscanf(s, "%d %d %d", &trig, &echo, &timeout) != 3)
+		if (sscanf(s, "%d %d", &trig, &echo) != 2)
 			return -EINVAL;
 
 		mutex_lock(&devices_mutex);
@@ -311,7 +310,7 @@ static ssize_t configure_store(struct class *class,
 			return -EEXIST;
 		}
 
-		new_sensor = create_hc_sro4(trig, echo, timeout);
+		new_sensor = create_hc_sro4(trig, echo);
 		mutex_unlock(&devices_mutex);
 		if (IS_ERR(new_sensor))
 			return PTR_ERR(new_sensor);
